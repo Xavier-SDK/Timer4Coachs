@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Timer4Coachs</title>
+<meta name="theme-color" content="#0B0B0C">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<link rel="stylesheet" href="fonts.css">
+<style>
+html,body{margin:0;min-height:100%;background:#0B0B0C;color:#F2EFE6;font-family:"Barlow","Helvetica Neue",Arial,sans-serif}
+main{max-width:520px;margin:0 auto;padding:48px 16px;line-height:1.45}
+h1{font-family:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;text-transform:uppercase;font-size:44px;margin:0 0 16px;color:#C6FF1A}
+p{color:#A3A5AA;font-size:17px;margin:0 0 14px}
+</style>
+</head>
+<body>
+<main>
+<h1>Timer4Coachs</h1>
+<p>Timer4Coachs est désormais une app pour iPhone et Apple Watch. L'ancienne version web n'est plus disponible.</p>
+<p lang="en">Timer4Coachs is now an iPhone and Apple Watch app. The former web version is no longer available.</p>
+</main>
+<!-- Désinstalle l'ancienne app web là où elle l'était (voir sw.js). -->
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(x){x.update();});});</script>
+</body>
+</html>

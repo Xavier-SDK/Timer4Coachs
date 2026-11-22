@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<!-- Seuls ce site et le temps réel Supabase sont joignables : un message piégé ne peut rien charger d'ailleurs. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src wss://uyykwnzvwwaerzpgsqsp.supabase.co; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Timer4Coachs TV</title>
+<link rel="stylesheet" href="../fonts.css">
+<style>
+/* Écran web de Timer4Coachs : affiche la séance que mène un iPhone (code de 6 caractères).
+   JavaScript ES5 sans bibliothèque, pour les navigateurs des TV anciennes. */
+:root{--ink:#0B0B0C;--panel:#141517;--line:#2A2C30;--text:#F2EFE6;--muted:#A3A5AA;--dim:#8E9096;--lime:#C6FF1A;--c:#C6FF1A;
+  --fd:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;--ft:"Barlow","Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--ft);overflow:hidden;cursor:none}
+.cache{display:none!important}
+/* Marges de 4 % : certaines TV rognent les bords de l'image. */
+#ecran{position:absolute;top:4vh;bottom:4vh;left:4vw;right:4vw}
+.centre{position:absolute;top:0;bottom:0;left:0;right:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:4vh 4vw}
+.grand{font-family:var(--fd);font-weight:900;text-transform:uppercase;color:var(--lime);font-size:13vh;font-size:min(13vh,10vw);line-height:1}
+.sous{font-weight:700;font-size:4.2vh;color:var(--muted);margin-top:2.5vh}
+.code{font-family:var(--fd);font-weight:900;font-size:7vh;letter-spacing:1.2vh;color:var(--lime)}
+#saisie{margin-top:4vh;display:flex;gap:2vw;align-items:center}
+#saisie input{font-family:var(--fd);font-weight:900;font-size:8vh;letter-spacing:1.5vh;text-transform:uppercase;width:42vh;text-align:center;
+  background:var(--panel);color:var(--lime);border:.4vh solid var(--line);border-radius:2vh;padding:1vh 2vh;cursor:auto}
+#saisie button{font-family:var(--ft);font-weight:700;font-size:4vh;background:var(--lime);color:var(--ink);border:0;border-radius:2vh;padding:2vh 4vh;cursor:pointer}
+/* Cadran : 64 % de la hauteur, toute la largeur sert de barre de progression. */
+#cadran{position:absolute;top:0;left:0;right:0;height:64%;background:var(--panel);overflow:hidden;border-radius:1.5vh}
+#cadran.consigne{background:var(--text)}
+.contenu{position:absolute;top:0;bottom:0;left:0;padding:2.4vh 3vw;display:flex;flex-direction:column}
+.haut{display:flex;justify-content:space-between;font-family:var(--fd);font-weight:800;font-size:6vh;letter-spacing:.3vh;text-transform:uppercase;opacity:.85;white-space:nowrap;overflow:hidden}
+.haut span:first-child{overflow:hidden;text-overflow:ellipsis}
+.temps{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:900;font-size:36vh;font-size:min(36vh,24vw);line-height:1;font-variant-numeric:tabular-nums}
+.lib{font-weight:700;font-size:5.4vh;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.base .temps{color:var(--c)}
+#cadran.consigne .contenu{color:var(--ink)}
+#cadran.consigne .temps{color:var(--ink)}
+#remplissage{position:absolute;top:0;bottom:0;left:0;width:0;overflow:hidden;background:var(--c)}
+#remplissage .contenu{color:var(--ink)}
+#hachures{position:absolute;top:0;bottom:0;left:0;width:0;border-right:3px solid var(--c);
+  background:repeating-linear-gradient(-45deg,var(--h) 0,var(--h) 22px,var(--ink) 22px,var(--ink) 44px)}
+#pause{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--fd);font-weight:900;font-size:11vh;text-transform:uppercase;
+  color:var(--lime);background:rgba(11,11,12,.85);padding:1vh 4vh;border-radius:2vh;white-space:nowrap}
+/* Instructions */
+#infos{position:absolute;top:64%;bottom:0;left:0;right:0;padding:2.5vh 3vw 0;display:flex;flex-direction:column}
+#consigne{font-weight:700;font-size:4.6vh;line-height:1.15;max-height:2.3em;overflow:hidden}
+#description div{font-size:3.5vh;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:.6vh}
+#materiel{font-size:3.2vh;color:var(--muted);margin-top:.6vh}
+.ressort{flex:1}
+#bas{display:flex;align-items:baseline;gap:2vw;white-space:nowrap}
+#bas .etiq{font-family:var(--fd);font-weight:800;font-size:3.2vh;letter-spacing:.3vh;text-transform:uppercase;color:var(--dim)}
+#suivant{font-weight:700;font-size:3.8vh;overflow:hidden;text-overflow:ellipsis}
+#dureeSuivant{font-size:3.4vh;color:var(--muted)}
+#progres{margin-left:auto;font-family:var(--fd);font-weight:800;font-size:3.6vh;color:var(--muted);font-variant-numeric:tabular-nums}
+#barre{height:6px;background:var(--line);border-radius:3px;margin-top:1.4vh;overflow:hidden}
+#barre div{height:100%;width:0;background:rgba(242,239,230,.7)}
+#mi{position:absolute;top:0;bottom:0;left:0;right:0;background:rgba(11,11,12,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#mi .t{font-family:var(--fd);font-weight:800;font-size:5vh;letter-spacing:.5vh;text-transform:uppercase;color:var(--c)}
+#mi .m{font-family:var(--fd);font-weight:900;font-size:16vh;text-transform:uppercase;line-height:1}
+/* État de la liaison, discret dans le coin. */
+#liaison{position:fixed;right:2vw;bottom:1.5vh;font-size:2.4vh;color:var(--dim)}
+#liaison:before{content:"";display:inline-block;width:1.4vh;height:1.4vh;border-radius:50%;background:#FF3B30;margin-right:1vh;vertical-align:middle}
+#liaison.ok:before{background:var(--lime)}
+</style>
+</head>
+<body>
+<div id="ecran">
+  <div id="accueil" class="centre">
+    <div class="grand">Timer4Coachs</div>
+    <div class="sous" id="consigneCode">Code de l'iPhone (TV dans Timer4Coachs)</div>
+    <form id="saisie">
+      <input id="champ" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button type="submit">OK</button>
+    </form>
+  </div>
+  <div id="message" class="centre cache">
+    <div class="grand" id="mTitre"></div>
+    <div class="sous" id="mSous"></div>
+    <div class="sous code" id="mCode"></div>
+  </div>
+  <div id="seance" class="cache">
+    <div id="cadran">
+      <div id="hachures"></div>
+      <div class="contenu base" id="c1"><div class="haut"><span class="bloc"></span><span class="rang"></span></div><div class="temps"></div><div class="lib"></div></div>
+      <div id="remplissage"><div class="contenu" id="c2"><div class="haut"><span class="bloc"></span><span class="rang"></span></div><div class="temps"></div><div class="lib"></div></div></div>
+      <div id="pause" class="cache"></div>
+    </div>
+    <div id="infos">
+      <div id="consigne"></div>
+      <div id="description"></div>
+      <div id="materiel"></div>
+      <div class="ressort"></div>
+      <div id="bas"><span class="etiq" id="ensuite"></span><span id="suivant"></span><span id="dureeSuivant"></span><span id="progres"></span></div>
+      <div id="barre"><div></div></div>
+    </div>
+    <div id="mi" class="cache"><div class="t" id="miT"></div><div class="m" id="miM"></div></div>
+  </div>
+</div>
+<div id="liaison">…</div>
+<script src="tv.js"></script>
+</body>
+</html>
