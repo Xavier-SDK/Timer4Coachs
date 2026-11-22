@@ -1,0 +1,9 @@
+html,body{margin:0;background:#0B0B0C;color:#F2EFE6;font-family:"Barlow","Helvetica Neue",Arial,sans-serif}
+main{max-width:680px;margin:0 auto;padding:40px 16px 64px;line-height:1.5}
+h1{font-family:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;text-transform:uppercase;font-size:40px;margin:0 0 8px;color:#C6FF1A}
+h2{font-size:20px;margin:32px 0 8px;color:#F2EFE6}
+p,li{color:#C9CAC6;font-size:16px}
+a{color:#C6FF1A}
+.date{color:#7D7F84;font-size:14px;margin-bottom:24px}
+nav{font-size:14px;margin-bottom:24px}
+hr{border:0;border-top:1px solid #2A2B2E;margin:48px 0}
