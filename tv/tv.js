@@ -275,7 +275,7 @@
     for (var i = 0; i < cles.length; i++) textes[cles[i]] = chaine(t[cles[i]], 120);
     return {
       seance: typeof p.seance === "string" ? p.seance.slice(0, 200) : null,
-      termine: p.termine === true, enMarche: p.enMarche === true,
+      termine: p.termine === true, enMarche: p.enMarche === true, montant: p.montant === true,
       bloc: chaine(p.bloc, 120), libelle: chaine(p.libelle, 120),
       type: /^(travail|repos|consigne)$/.test(p.type) ? p.type : "travail",
       couleur: /^#[0-9A-Fa-f]{6}$/.test(p.couleur) ? p.couleur : "#8E9096",
@@ -320,6 +320,8 @@
     var passe = e.enMarche ? (Date.now() - recuA) / 1000 : 0;
     var restant = Math.max(0, e.restant - passe), ecoule = Math.min(e.total, e.ecoule + passe);
     var p = e.duree > 0 ? Math.min(1, Math.max(0, 1 - restant / e.duree)) : 0;
+    // Bloc « chrono: montant » : le temps écoulé de la séquence monte de 0:00 à sa durée.
+    var chiffres = e.montant ? Math.floor(Math.max(0, e.duree - restant) + 1e-6) : restant;
     var racine = document.documentElement;
     if (racine.style.getPropertyValue("--c") !== e.couleur) {
       racine.style.setProperty("--c", e.couleur);
@@ -334,7 +336,7 @@
       cs[i].style.width = largeur + "px";
       texte(cs[i].querySelector(".bloc"), e.bloc);
       texte(cs[i].querySelector(".rang"), e.nb > 1 ? e.rang + "/" + e.nb : "");
-      texte(cs[i].querySelector(".temps"), avant ? heure() : chrono(restant));
+      texte(cs[i].querySelector(".temps"), avant ? heure() : chrono(chiffres));
       texte(cs[i].querySelector(".lib"), e.libelle);
     }
     $("pause").className = e.enMarche ? "cache" : "";
