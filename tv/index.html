@@ -30,7 +30,7 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 /* Cadran : 64 % de la hauteur, toute la largeur sert de barre de progression. */
 /* Bandeau (logo et nom de la salle, coach) : 11 % en haut quand l'iPhone en envoie un. */
 #entete{position:absolute;top:0;left:0;right:0;height:11%;display:flex;align-items:center;gap:1.6vw;white-space:nowrap}
-#logo{height:100%;max-width:30%;object-fit:contain;background:var(--text);border-radius:1.4vh;padding:.8vh}
+#logo{height:100%;max-width:30%;object-fit:contain;border-radius:1vh}
 #salle{font-family:var(--fd);font-weight:800;font-size:4.6vh;letter-spacing:.3vh;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis}
 #coach{margin-left:auto;text-align:right;line-height:1}
 #coach .etiq{display:block;font-family:var(--fd);font-weight:800;font-size:2.6vh;letter-spacing:.3vh;text-transform:uppercase;color:var(--dim)}
@@ -75,6 +75,42 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 #liaison.ok:before{background:var(--lime)}
 /* Pendant la séance, l'état de la liaison ne s'affiche que s'il y a un problème. */
 #liaison.ok.discret{display:none}
+/* Heure, en petit au milieu du bandeau. */
+#horloge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--fd);font-weight:800;font-size:4.6vh;letter-spacing:.3vh;color:var(--muted);font-variant-numeric:tabular-nums}
+/* Programme du bloc : le chrono prend les 2/3, la liste des exercices le dernier tiers, sans cadre. */
+#prog{position:absolute;top:0;bottom:17%;right:0;width:33%;padding-top:1vh;overflow:hidden;display:none}
+#seance.avecProg #prog{display:block}
+#seance.avecEntete #prog{top:14%}
+#seance.avecProg #cadran{right:36%;height:auto;bottom:17%}
+#seance.avecProg #infos{top:83%;padding:0}
+#nomProg{font-family:var(--fd);font-weight:900;font-size:6.4vh;text-transform:uppercase;line-height:1;letter-spacing:.2vh;max-height:2em;overflow:hidden}
+#listeProg{list-style:none;margin-top:2.6vh}
+#listeProg li{display:flex;align-items:baseline;gap:1.2vw;font-weight:700;font-size:4.8vh;line-height:1.05;margin-bottom:1.8vh}
+/* Un seul axe : la colonne des nombres a la même largeur partout, alignée à droite. */
+#listeProg .n{flex:none;width:9vh;font-family:var(--fd);font-weight:900;font-size:6.4vh;color:var(--lime);text-align:right;font-variant-numeric:tabular-nums}
+#listeProg .t{min-width:0;overflow:hidden;max-height:2.1em}
+#listeProg li.s{font-size:4.2vh}
+#listeProg li.s .n{font-size:5.4vh;color:var(--text)}
+#listeProg li.on{background:var(--c);color:var(--ink);border-radius:1vh;padding:.4vh 1vw;margin-left:-1vw;margin-right:-1vw}
+#listeProg li.on .n{color:var(--ink)}
+/* Scaling en bas, façon commentaires : le niveau en gras blanc. */
+#notesL{flex:1;min-width:0;margin-right:3vw;display:none;font-size:3.3vh;color:var(--muted);line-height:1.35}
+#notesL div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#notesL b{font-family:var(--fd);font-weight:900;letter-spacing:.2vh;color:var(--text);margin-right:.6vw}
+#seance.avecProg #defile{display:none}
+#seance.avecProg #notesL{display:block}
+#seance.avecProg #ligne{align-items:flex-end;height:calc(100% - 1.6vh - 6px)}
+#seance.avecProg #ligne > span{padding-bottom:.4vh}
+/* Avant le départ : l'heure en grand sur fond noir, la séance entière à droite. */
+#seance.avant #cadran{background:none}
+#seance.avant .haut,#seance.avant .lib,#seance.avant #pause,#seance.avant #horloge,#seance.avant #barre,#seance.avant #hachures{visibility:hidden}
+#seance.avant .base .temps{color:var(--text)}
+#seance.avant #nomProg{font-size:5.2vh}
+#seance.avant #listeProg{margin-top:1.4vh}
+#seance.avant #listeProg li{font-size:4.1vh;margin-bottom:.7vh}
+#seance.avant #listeProg .n{font-size:5.6vh}
+#seance.avant #listeProg li.s{font-size:3.8vh}
+#seance.avant #listeProg li.s .n{font-size:4.6vh}
 </style>
 </head>
 <body>
@@ -96,6 +132,7 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
     <div id="entete" class="cache">
       <img id="logo" class="cache" alt="">
       <span id="salle"></span>
+      <span id="horloge"></span>
       <span id="coach"><span class="etiq" id="etiqCoach"></span><span id="nomCoach"></span></span>
     </div>
     <div id="cadran">
@@ -104,8 +141,9 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
       <div id="remplissage"><div class="contenu" id="c2"><div class="haut"><span class="bloc"></span><span class="rang"></span></div><div class="temps"></div><div class="lib"></div></div></div>
       <div id="pause" class="cache"></div>
     </div>
+    <div id="prog"><div id="nomProg"></div><ul id="listeProg"></ul></div>
     <div id="infos">
-      <div id="ligne"><div id="defile"><span id="consigne"></span><span id="copie" class="cache"></span></div><span class="etiq" id="ensuite"></span><span id="suivant"></span><span id="dureeSuivant"></span></div>
+      <div id="ligne"><div id="notesL"></div><div id="defile"><span id="consigne"></span><span id="copie" class="cache"></span></div><span class="etiq" id="ensuite"></span><span id="suivant"></span><span id="dureeSuivant"></span></div>
       <div id="barre"><div></div></div>
     </div>
     <div id="mi" class="cache"><div class="t" id="miT"></div><div class="m" id="miM"></div></div>
