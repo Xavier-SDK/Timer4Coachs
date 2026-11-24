@@ -285,7 +285,7 @@
       salle: chaine(p.salle, 60), coach: chaine(p.coach, 60), logo: /^[0-9a-f]{12}$/.test(p.logo) ? p.logo : "",
       suivant: chaine(p.suivant, 120), dureeSuivant: nombre(p.dureeSuivant, 86400),
       miRound: typeof p.miRound === "string" ? p.miRound.slice(0, 120) : null,
-      programme: lignesProg(p.programme, 12), notes: textesListe(p.notes, 2, 200),
+      programme: lignesProg(p.programme, 12), titreProgramme: chaine(p.titreProgramme, 120), notes: textesListe(p.notes, 2, 300),
       apercu: lignesProg(p.apercu, 16), notesApercu: textesListe(p.notesApercu, 2, 200),
       textes: textes, langue: chaine(p.langue, 20)
     };
@@ -339,7 +339,7 @@
     }
     $("pause").className = e.enMarche ? "cache" : "";
     texte($("pause"), t.pause || "");
-    programme(avant ? e.seance : e.bloc, liste, avant ? e.notesApercu : e.notes);
+    programme(avant ? e.seance : (e.titreProgramme || e.bloc), liste, avant ? e.notesApercu : e.notes);
     if (liste.length === 0) ligne(e.consigne);
     // Avant le départ, « Ensuite » annonce la première étape (celle qui démarre).
     var suivant = avant ? e.bloc : e.suivant, dureeSuivant = avant ? e.duree : e.dureeSuivant;
@@ -370,7 +370,8 @@
 
   function heure() {
     var d = new Date(), m = d.getMinutes();
-    return d.getHours() + ":" + (m < 10 ? "0" : "") + m;
+    var h = d.getHours();
+    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   }
   // Programme du bloc (ou de la séance avant le départ) : redessiné seulement quand il change.
   // Texte seulement (textContent), jamais de HTML venu du message.
@@ -380,8 +381,11 @@
     if (cle === progAffiche) return;
     progAffiche = cle;
     texte($("nomProg"), nom || "");
-    var ul = $("listeProg");
+    var ul = $("listeProg"), large = false;
     while (ul.firstChild) ul.removeChild(ul.firstChild);
+    for (var j = 0; j < liste.length; j++) if (liste[j].n.length > 3) large = true;
+    // Durées (« 12:00 ») : colonne plus large, chiffres un peu plus petits, même axe pour toutes les lignes.
+    ul.className = large ? "large" : "";
     for (var i = 0; i < liste.length; i++) {
       var li = document.createElement("li"), n = document.createElement("span"), x = document.createElement("span");
       li.className = (liste[i].s ? "s" : "") + (liste[i].on ? " on" : "");
