@@ -113,6 +113,7 @@
       if (!v) return;
       dernierT = d.t;
       etat = v; recuA = Date.now(); dernierMessage = recuA;
+      garderEntete(v);
       appliquerLangue(etat.langue);
       liaison(true, code);
     });
@@ -134,7 +135,29 @@
       if (!l || typeof l.id !== "string" || !/^[0-9a-f]{12}$/.test(l.id) || typeof l.l !== "string" || l.l.length > 60000 || !/^[A-Za-z0-9+\/]+=*$/.test(l.l)) return;
       logoId = l.id;
       $("logo").src = "data:image/jpeg;base64," + l.l;
+      try { localStorage.setItem("logoTV", l.id + "." + l.l); } catch (e) {}
     });
+  }
+  // En-tête (salle, coach, logo) gardé sur la TV : l'accueil reste affiché quand l'iPhone se tait
+  // (écran verrouillé, app en arrière-plan).
+  function garderEntete(v) {
+    var j = JSON.stringify({ salle: v.salle, coach: v.coach, logo: v.logo, coachTxt: v.textes.coach || "" });
+    try { if (localStorage.getItem("enteteTV") !== j) localStorage.setItem("enteteTV", j); } catch (e) {}
+  }
+  function enteteGarde() {
+    var g = null;
+    try { g = JSON.parse(localStorage.getItem("enteteTV") || "null"); } catch (e) {}
+    if (!g || typeof g !== "object") return null;
+    var e = { seance: null, salle: chaine(g.salle, 60), coach: chaine(g.coach, 60),
+      logo: /^[0-9a-f]{12}$/.test(g.logo) ? g.logo : "", textes: { coach: chaine(g.coachTxt, 120) } };
+    return e.salle || e.coach || e.logo ? e : null;
+  }
+  function lireLogoGarde() {
+    var g = ""; try { g = localStorage.getItem("logoTV") || ""; } catch (e) {}
+    var i = g.indexOf(".");
+    if (i !== 12 || !/^[0-9a-f]{12}$/.test(g.slice(0, 12)) || !/^[A-Za-z0-9+\/]+=*$/.test(g.slice(13)) || g.length > 60014) return;
+    logoId = g.slice(0, 12);
+    $("logo").src = "data:image/jpeg;base64," + g.slice(13);
   }
 
   // Autorisation sur l'iPhone : clé publique éphémère publiée toutes les 3 s, nombre de vérification affiché.
@@ -305,6 +328,12 @@
       return;
     }
     if (!etat || Date.now() - dernierMessage > 15000) {
+      var g = enteteGarde();
+      if (g) {
+        accueilAppaire(g, g.textes);
+        if (etat) liaison(false, tr("injoignable"));
+        return;
+      }
       afficherMessage("Timer4Coachs", etat && etat.textes ? etat.textes.attente : tr("attente"), code);
       if (etat && Date.now() - dernierMessage > 15000) liaison(false, tr("injoignable"));
       return;
@@ -477,6 +506,7 @@
   document.documentElement.lang = langue;
   document.documentElement.dir = /^(ar|he|ckb)$/.test(langue) ? "rtl" : "ltr";
   texte($("consigneCode"), tr("code"));
+  lireLogoGarde();
   var c0 = lireCode();
   if (c0) brancher(c0.code, c0.cle); else { montrer("accueil"); liaison(false, ""); try { $("champ").focus(); } catch (e) {} }
   garderAllume();
