@@ -38,6 +38,8 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 /* Cadran : 80 % de la hauteur (66,5 % sous le bandeau), toute la largeur sert de barre de progression. */
 #cadran{position:absolute;top:0;left:0;right:0;height:80%;background:var(--panel);overflow:hidden;border-radius:1.5vh}
 #cadran.consigne{background:var(--text)}
+/* Le cadran ne montre que le temps : bloc, rang et exercice sont dans la colonne de droite. */
+#cadran .haut,#cadran .lib{display:none}
 .contenu{position:absolute;top:0;bottom:0;left:0;padding:2.4vh 3vw;display:flex;flex-direction:column}
 .haut{display:flex;justify-content:space-between;font-family:var(--fd);font-weight:800;font-size:6vh;letter-spacing:.3vh;text-transform:uppercase;opacity:.85;white-space:nowrap;overflow:hidden}
 .haut span:first-child{overflow:hidden;text-overflow:ellipsis}
@@ -54,7 +56,7 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
   color:var(--lime);background:rgba(11,11,12,.85);padding:1vh 4vh;border-radius:2vh;white-space:nowrap}
 /* Instructions */
 #seance.avecEntete #cadran{top:14%;height:66.5%}
-/* Une seule ligne : la consigne, qui défile si elle est trop longue, et ce qui vient ensuite. */
+/* Une seule ligne : la consigne, qui défile si elle est trop longue. */
 #infos{position:absolute;top:80%;bottom:0;left:0;right:0;padding:2.6vh 3vw 0}
 #seance.avecEntete #infos{top:80.5%}
 #ligne{display:flex;align-items:baseline;white-space:nowrap}
@@ -62,8 +64,6 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 #defile span{display:inline-block;font-weight:700;font-size:5vh}
 #copie{padding-left:6vh}
 #ligne .etiq{font-family:var(--fd);font-weight:800;font-size:3vh;letter-spacing:.3vh;text-transform:uppercase;color:var(--dim);margin-right:1.4vw}
-#suivant{font-weight:700;font-size:3.8vh;margin-right:1.4vw;max-width:38vw;overflow:hidden;text-overflow:ellipsis}
-#dureeSuivant{font-size:3.6vh;color:var(--muted)}
 #barre{height:6px;background:var(--line);border-radius:3px;margin-top:1.6vh;overflow:hidden}
 #barre div{height:100%;width:0;background:rgba(242,239,230,.7)}
 #mi{position:absolute;top:0;bottom:0;left:0;right:0;background:rgba(11,11,12,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
@@ -83,6 +83,7 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 #seance.avecEntete #prog{top:14%}
 #seance.avecProg #cadran{right:36%;height:auto;bottom:17%}
 #seance.avecProg #infos{top:83%;padding:0}
+#nomProg .rangProg{color:var(--c);margin-right:1.2vw}
 #nomProg{font-family:var(--fd);font-weight:900;font-size:6.4vh;text-transform:uppercase;line-height:1;letter-spacing:.2vh;max-height:2em;overflow:hidden}
 #listeProg{list-style:none;margin-top:2.6vh}
 #listeProg li{display:flex;align-items:baseline;gap:1.2vw;font-weight:700;font-size:4.8vh;line-height:1.05;margin-bottom:1.8vh}
@@ -146,7 +147,7 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
     </div>
     <div id="prog"><div id="nomProg"></div><ul id="listeProg"></ul></div>
     <div id="infos">
-      <div id="ligne"><div id="notesL"></div><div id="defile"><span id="consigne"></span><span id="copie" class="cache"></span></div><span class="etiq" id="ensuite"></span><span id="suivant"></span><span id="dureeSuivant"></span></div>
+      <div id="ligne"><div id="notesL"></div><div id="defile"><span id="consigne"></span><span id="copie" class="cache"></span></div></div>
       <div id="barre"><div></div></div>
     </div>
     <div id="mi" class="cache"><div class="t" id="miT"></div><div class="m" id="miM"></div></div>
