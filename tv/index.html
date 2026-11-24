@@ -88,7 +88,8 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 #listeProg li{display:flex;align-items:baseline;gap:1.2vw;font-weight:700;font-size:4.8vh;line-height:1.05;margin-bottom:1.8vh}
 /* Un seul axe : la colonne des nombres a la même largeur partout, alignée à droite. */
 #listeProg .n{flex:none;width:9vh;font-family:var(--fd);font-weight:900;font-size:6.4vh;color:var(--lime);text-align:right;font-variant-numeric:tabular-nums}
-#listeProg .t{min-width:0;overflow:hidden;max-height:2.1em}
+#listeProg .t{min-width:0;overflow:hidden;max-height:3.2em}
+#listeProg.large .n{width:13vh;font-size:5vh}
 #listeProg li.s{font-size:4.2vh}
 #listeProg li.s .n{font-size:5.4vh;color:var(--text)}
 #listeProg li.on{background:var(--c);color:var(--ink);border-radius:1vh;padding:.4vh 1vw;margin-left:-1vw;margin-right:-1vw}
@@ -96,6 +97,8 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 /* Scaling en bas, façon commentaires : le niveau en gras blanc. */
 #notesL{flex:1;min-width:0;margin-right:3vw;display:none;font-size:3.3vh;color:var(--muted);line-height:1.35}
 #notesL div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Une seule note (la consigne d'un bloc sans scaling) : elle peut tenir sur deux lignes. */
+#notesL div:only-child{white-space:normal;max-height:2.7em}
 #notesL b{font-family:var(--fd);font-weight:900;letter-spacing:.2vh;color:var(--text);margin-right:.6vw}
 #seance.avecProg #defile{display:none}
 #seance.avecProg #notesL{display:block}

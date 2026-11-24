@@ -275,7 +275,7 @@
     for (var i = 0; i < cles.length; i++) textes[cles[i]] = chaine(t[cles[i]], 120);
     return {
       seance: typeof p.seance === "string" ? p.seance.slice(0, 200) : null,
-      termine: p.termine === true, enMarche: p.enMarche === true,
+      termine: p.termine === true, enMarche: p.enMarche === true, montant: p.montant === true,
       bloc: chaine(p.bloc, 120), libelle: chaine(p.libelle, 120),
       type: /^(travail|repos|consigne)$/.test(p.type) ? p.type : "travail",
       couleur: /^#[0-9A-Fa-f]{6}$/.test(p.couleur) ? p.couleur : "#8E9096",
@@ -285,7 +285,7 @@
       salle: chaine(p.salle, 60), coach: chaine(p.coach, 60), logo: /^[0-9a-f]{12}$/.test(p.logo) ? p.logo : "",
       suivant: chaine(p.suivant, 120), dureeSuivant: nombre(p.dureeSuivant, 86400),
       miRound: typeof p.miRound === "string" ? p.miRound.slice(0, 120) : null,
-      programme: lignesProg(p.programme, 12), notes: textesListe(p.notes, 2, 200),
+      programme: lignesProg(p.programme, 12), titreProgramme: chaine(p.titreProgramme, 120), notes: textesListe(p.notes, 2, 300),
       apercu: lignesProg(p.apercu, 16), notesApercu: textesListe(p.notesApercu, 2, 200),
       textes: textes, langue: chaine(p.langue, 20)
     };
@@ -320,6 +320,8 @@
     var passe = e.enMarche ? (Date.now() - recuA) / 1000 : 0;
     var restant = Math.max(0, e.restant - passe), ecoule = Math.min(e.total, e.ecoule + passe);
     var p = e.duree > 0 ? Math.min(1, Math.max(0, 1 - restant / e.duree)) : 0;
+    // Bloc « chrono: montant » : le temps écoulé de la séquence monte de 0:00 à sa durée.
+    var chiffres = e.montant ? Math.floor(Math.max(0, e.duree - restant) + 1e-6) : restant;
     var racine = document.documentElement;
     if (racine.style.getPropertyValue("--c") !== e.couleur) {
       racine.style.setProperty("--c", e.couleur);
@@ -334,12 +336,12 @@
       cs[i].style.width = largeur + "px";
       texte(cs[i].querySelector(".bloc"), e.bloc);
       texte(cs[i].querySelector(".rang"), e.nb > 1 ? e.rang + "/" + e.nb : "");
-      texte(cs[i].querySelector(".temps"), avant ? heure() : chrono(restant));
+      texte(cs[i].querySelector(".temps"), avant ? heure() : chrono(chiffres));
       texte(cs[i].querySelector(".lib"), e.libelle);
     }
     $("pause").className = e.enMarche ? "cache" : "";
     texte($("pause"), t.pause || "");
-    programme(avant ? e.seance : e.bloc, liste, avant ? e.notesApercu : e.notes);
+    programme(avant ? e.seance : (e.titreProgramme || e.bloc), liste, avant ? e.notesApercu : e.notes);
     if (liste.length === 0) ligne(e.consigne);
     // Avant le départ, « Ensuite » annonce la première étape (celle qui démarre).
     var suivant = avant ? e.bloc : e.suivant, dureeSuivant = avant ? e.duree : e.dureeSuivant;
@@ -370,7 +372,8 @@
 
   function heure() {
     var d = new Date(), m = d.getMinutes();
-    return d.getHours() + ":" + (m < 10 ? "0" : "") + m;
+    var h = d.getHours();
+    return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
   }
   // Programme du bloc (ou de la séance avant le départ) : redessiné seulement quand il change.
   // Texte seulement (textContent), jamais de HTML venu du message.
@@ -380,8 +383,11 @@
     if (cle === progAffiche) return;
     progAffiche = cle;
     texte($("nomProg"), nom || "");
-    var ul = $("listeProg");
+    var ul = $("listeProg"), large = false;
     while (ul.firstChild) ul.removeChild(ul.firstChild);
+    for (var j = 0; j < liste.length; j++) if (liste[j].n.length > 3) large = true;
+    // Durées (« 12:00 ») : colonne plus large, chiffres un peu plus petits, même axe pour toutes les lignes.
+    ul.className = large ? "large" : "";
     for (var i = 0; i < liste.length; i++) {
       var li = document.createElement("li"), n = document.createElement("span"), x = document.createElement("span");
       li.className = (liste[i].s ? "s" : "") + (liste[i].on ? " on" : "");
