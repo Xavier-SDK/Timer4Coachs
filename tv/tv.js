@@ -334,20 +334,15 @@
     var cs = [$("c1"), $("c2")];
     for (var i = 0; i < 2; i++) {
       cs[i].style.width = largeur + "px";
-      texte(cs[i].querySelector(".bloc"), e.bloc);
-      texte(cs[i].querySelector(".rang"), e.nb > 1 ? e.rang + "/" + e.nb : "");
       texte(cs[i].querySelector(".temps"), avant ? heure() : chrono(chiffres));
-      texte(cs[i].querySelector(".lib"), e.libelle);
     }
     $("pause").className = e.enMarche ? "cache" : "";
     texte($("pause"), t.pause || "");
-    programme(avant ? e.seance : (e.titreProgramme || e.bloc), liste, avant ? e.notesApercu : e.notes);
+    // Rang de la séquence devant le titre, seulement quand la colonne montre le bloc en cours.
+    var titreCol = avant ? e.seance : (e.titreProgramme || e.bloc);
+    var rang = !avant && e.nb > 1 && titreCol === e.bloc ? e.rang + "/" + e.nb : "";
+    programme(titreCol, rang, liste, avant ? e.notesApercu : e.notes);
     if (liste.length === 0) ligne(e.consigne);
-    // Avant le départ, « Ensuite » annonce la première étape (celle qui démarre).
-    var suivant = avant ? e.bloc : e.suivant, dureeSuivant = avant ? e.duree : e.dureeSuivant;
-    texte($("ensuite"), suivant ? t.ensuite || "" : "");
-    texte($("suivant"), suivant);
-    texte($("dureeSuivant"), dureeSuivant > 0 ? chrono(dureeSuivant) : "");
     $("barre").firstChild.style.width = (e.total > 0 ? Math.min(100, ecoule / e.total * 100) : 0) + "%";
     $("mi").className = e.miRound ? "" : "cache";
     texte($("miT"), t.miRound || ""); texte($("miM"), e.miRound || "");
@@ -378,11 +373,18 @@
   // Programme du bloc (ou de la séance avant le départ) : redessiné seulement quand il change.
   // Texte seulement (textContent), jamais de HTML venu du message.
   var progAffiche = null;
-  function programme(nom, liste, notes) {
-    var cle = JSON.stringify([nom, liste, notes]);
+  function programme(nom, rang, liste, notes) {
+    var cle = JSON.stringify([nom, rang, liste, notes]);
     if (cle === progAffiche) return;
     progAffiche = cle;
-    texte($("nomProg"), nom || "");
+    var titre = $("nomProg");
+    while (titre.firstChild) titre.removeChild(titre.firstChild);
+    if (rang) {
+      var r = document.createElement("span");
+      r.className = "rangProg"; r.textContent = rang;
+      titre.appendChild(r);
+    }
+    titre.appendChild(document.createTextNode(nom || ""));
     var ul = $("listeProg"), large = false;
     while (ul.firstChild) ul.removeChild(ul.firstChild);
     for (var j = 0; j < liste.length; j++) if (liste[j].n.length > 3) large = true;
