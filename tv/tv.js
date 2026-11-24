@@ -310,7 +310,7 @@
       return;
     }
     var e = etat, t = e.textes || {};
-    if (!e.seance) { afficherMessage("Timer4Coachs", t.attente || "", code); return; }
+    if (!e.seance) { accueilAppaire(e, t); return; }
     if (e.termine) { afficherMessage(t.fin || "", e.seance, ""); return; }
     montrer("seance");
     // Avant le départ : rien n'a encore tourné. L'heure remplace le chrono, la séance entière s'affiche à droite.
@@ -346,6 +346,19 @@
     $("barre").firstChild.style.width = (e.total > 0 ? Math.min(100, ecoule / e.total * 100) : 0) + "%";
     $("mi").className = e.miRound ? "" : "cache";
     texte($("miT"), t.miRound || ""); texte($("miM"), e.miRound || "");
+  }
+  // Écran appairé sans séance : bandeau (logo, salle, coach) et grande heure, comme avant un départ, sans plan.
+  function accueilAppaire(e, t) {
+    montrer("seance");
+    entete(e, t, false, true);
+    $("seance").className += " attente";
+    $("cadran").className = "";
+    $("remplissage").style.width = "0";
+    $("hachures").style.width = "0";
+    var cs = [$("c1"), $("c2")], largeur = $("cadran").clientWidth;
+    for (var i = 0; i < 2; i++) { cs[i].style.width = largeur + "px"; texte(cs[i].querySelector(".temps"), heure()); }
+    $("pause").className = "cache";
+    $("mi").className = "cache";
   }
   // Bandeau : logo (s'il est arrivé et que c'est le bon), nom de la salle, coach. Absent si l'iPhone n'envoie rien.
   function entete(e, t, avecProg, avant) {
