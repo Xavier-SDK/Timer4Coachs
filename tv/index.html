@@ -106,6 +106,9 @@ html,body{height:100%;background:var(--ink);color:var(--text);font-family:var(--
 #seance.avecProg #ligne{align-items:flex-end;height:calc(100% - 1.6vh - 6px)}
 #seance.avecProg #ligne > span{padding-bottom:.4vh}
 /* Avant le départ : l'heure en grand sur fond noir, la séance entière à droite. */
+#seance.attente #cadran{background:none}
+#seance.attente #horloge,#seance.attente #infos,#seance.attente #prog,#seance.attente #remplissage,#seance.attente #hachures{visibility:hidden}
+#seance.attente .base .temps{color:var(--text)}
 #seance.avant #cadran{background:none}
 #seance.avant .haut,#seance.avant .lib,#seance.avant #pause,#seance.avant #horloge,#seance.avant #barre,#seance.avant #hachures{visibility:hidden}
 #seance.avant .base .temps{color:var(--text)}
