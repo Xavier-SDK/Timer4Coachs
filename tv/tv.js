@@ -11,6 +11,8 @@
   var CLE = /^[A-Za-z0-9_-]{43}$/;
   var cleBrute = null, cleAes = null, dernierT = 0, appairage = null, saisieOuverte = false;
   var etat = null, recuA = 0, dernierMessage = 0;
+  // Logo de la salle : reçu à part (message « logo »), affiché tant que l'état annonce la même empreinte.
+  var logoId = "", logoDemande = 0;
 
   function $(id) { return document.getElementById(id); }
   // Langue : celle de l'iPhone (gardée pour les prochaines ouvertures), sinon celle du navigateur.
@@ -37,7 +39,9 @@
     document.documentElement.dir = /^(ar|he|ckb)$/.test(c) ? "rtl" : "ltr";
     texte($("consigneCode"), tr("code"));
   }
+  var montree = null;
   function montrer(id) {
+    if (id !== montree) { montree = id; var l = $("liaison"); if (l.className.indexOf("ok") === 0) l.className = id === "seance" ? "ok discret" : "ok"; }
     var ids = ["accueil", "message", "seance"];
     for (var i = 0; i < ids.length; i++) $(ids[i]).className = ids[i] === id ? (id === "seance" ? "" : "centre") : (ids[i] === "seance" ? "cache" : "centre cache");
   }
@@ -47,7 +51,7 @@
     var m = Math.floor(v / 60), r = v % 60;
     return m + ":" + (r < 10 ? "0" : "") + r;
   }
-  function liaison(ok, t) { var l = $("liaison"); l.className = ok ? "ok" : ""; texte(l, t); }
+  function liaison(ok, t) { var l = $("liaison"); l.className = ok ? (montree === "seance" ? "ok discret" : "ok") : ""; texte(l, t); }
 
   // Code : dans l'adresse (#K7M2QX.CLE), sinon saisi à la télécommande puis gardé.
   function valider() {
@@ -103,11 +107,7 @@
     }, function () {});
   }
   function dechiffrer(m) {
-    if (!cleAes || !m || typeof m.iv !== "string" || typeof m.ct !== "string" || m.ct.length > 20000 || m.iv.length > 40) return;
-    var c = cleAes;
-    subtil.decrypt({ name: "AES-GCM", iv: versOctets(m.iv) }, c, versOctets(m.ct)).then(function (clair) {
-      if (c !== cleAes) return;
-      var d; try { d = JSON.parse(utf8(clair)); } catch (e) { return; }
+    ouvrir(m, 20000, function (d) {
       if (!d || typeof d.t !== "number" || d.t <= dernierT) return;
       var v = verifier(d.e);
       if (!v) return;
@@ -115,7 +115,26 @@
       etat = v; recuA = Date.now(); dernierMessage = recuA;
       appliquerLangue(etat.langue);
       liaison(true, code);
+    });
+  }
+  // Déchiffre un message de l'iPhone (AES-GCM, clé des écrans) puis passe son JSON à suite.
+  function ouvrir(m, max, suite) {
+    if (!cleAes || !m || typeof m.iv !== "string" || typeof m.ct !== "string" || m.ct.length > max || m.iv.length > 40) return;
+    var c = cleAes;
+    subtil.decrypt({ name: "AES-GCM", iv: versOctets(m.iv) }, c, versOctets(m.ct)).then(function (clair) {
+      if (c !== cleAes) return;
+      var d; try { d = JSON.parse(utf8(clair)); } catch (e) { return; }
+      suite(d);
     }, function () {});
+  }
+  // Logo : JPEG en base64 (60 Ko au plus), affiché par une adresse data: (seule source d'image permise avec ce site).
+  function recevoirLogo(m) {
+    ouvrir(m, 90000, function (d) {
+      var l = d && d.e;
+      if (!l || typeof l.id !== "string" || !/^[0-9a-f]{12}$/.test(l.id) || typeof l.l !== "string" || l.l.length > 60000 || !/^[A-Za-z0-9+\/]+=*$/.test(l.l)) return;
+      logoId = l.id;
+      $("logo").src = "data:image/jpeg;base64," + l.l;
+    });
   }
 
   // Autorisation sur l'iPhone : clé publique éphémère publiée toutes les 3 s, nombre de vérification affiché.
@@ -202,7 +221,7 @@
       }, 25000);
     };
     ws.onmessage = function (m) {
-      if (typeof m.data !== "string" || m.data.length > 20000) return;
+      if (typeof m.data !== "string" || m.data.length > 100000) return;
       var d; try { d = JSON.parse(m.data); } catch (e) { return; }
       if (d.event === "phx_reply" && d.ref === joinRef) {
         if (d.payload && d.payload.status === "ok") {
@@ -213,6 +232,8 @@
         } else liaison(false, tr("refuse"));
       } else if (d.event === "broadcast" && d.payload && d.payload.event === "etat") {
         dechiffrer(d.payload.payload);
+      } else if (d.event === "broadcast" && d.payload && d.payload.event === "logo") {
+        recevoirLogo(d.payload.payload);
       } else if (d.event === "broadcast" && d.payload && d.payload.event === "cle") {
         recevoirCle(d.payload.payload);
       }
@@ -233,11 +254,8 @@
   function verifier(p) {
     if (!p || typeof p !== "object" || Object.prototype.toString.call(p) === "[object Array]") return null;
     var t = p.textes && typeof p.textes === "object" ? p.textes : {}, textes = {};
-    var cles = ["attente", "pause", "ensuite", "miRound", "fin"];
+    var cles = ["attente", "pause", "ensuite", "miRound", "fin", "coach"];
     for (var i = 0; i < cles.length; i++) textes[cles[i]] = chaine(t[cles[i]], 120);
-    var desc = [];
-    if (Object.prototype.toString.call(p.description) === "[object Array]")
-      for (var j = 0; j < p.description.length && desc.length < 6; j++) if (typeof p.description[j] === "string") desc.push(p.description[j].slice(0, 300));
     return {
       seance: typeof p.seance === "string" ? p.seance.slice(0, 200) : null,
       termine: p.termine === true, enMarche: p.enMarche === true,
@@ -246,7 +264,8 @@
       couleur: /^#[0-9A-Fa-f]{6}$/.test(p.couleur) ? p.couleur : "#8E9096",
       restant: nombre(p.restant, 86400), duree: nombre(p.duree, 86400), ecoule: nombre(p.ecoule, 86400), total: nombre(p.total, 86400),
       rang: Math.floor(nombre(p.rang, 999)), nb: Math.floor(nombre(p.nb, 999)),
-      consigne: chaine(p.consigne, 300), description: desc, materiel: chaine(p.materiel, 200),
+      consigne: chaine(p.consigne, 300),
+      salle: chaine(p.salle, 60), coach: chaine(p.coach, 60), logo: /^[0-9a-f]{12}$/.test(p.logo) ? p.logo : "",
       suivant: chaine(p.suivant, 120), dureeSuivant: nombre(p.dureeSuivant, 86400),
       miRound: typeof p.miRound === "string" ? p.miRound.slice(0, 120) : null,
       textes: textes, langue: chaine(p.langue, 20)
@@ -275,6 +294,7 @@
     if (!e.seance) { afficherMessage("Timer4Coachs", t.attente || "", code); return; }
     if (e.termine) { afficherMessage(t.fin || "", e.seance, ""); return; }
     montrer("seance");
+    entete(e, t);
     var passe = e.enMarche ? (Date.now() - recuA) / 1000 : 0;
     var restant = Math.max(0, e.restant - passe), ecoule = Math.min(e.total, e.ecoule + passe);
     var p = e.duree > 0 ? Math.min(1, Math.max(0, 1 - restant / e.duree)) : 0;
@@ -297,22 +317,62 @@
     }
     $("pause").className = e.enMarche ? "cache" : "";
     texte($("pause"), t.pause || "");
-    texte($("consigne"), e.consigne);
-    var desc = (e.description || []).join("\n");
-    if ($("description").getAttribute("data-t") !== desc) {
-      $("description").setAttribute("data-t", desc);
-      $("description").innerHTML = "";
-      for (var j = 0; j < e.description.length; j++) { var d = document.createElement("div"); d.textContent = e.description[j]; $("description").appendChild(d); }
-    }
-    texte($("materiel"), e.materiel);
-    texte($("ensuite"), t.ensuite || "");
+    ligne(e.consigne);
+    texte($("ensuite"), e.suivant ? t.ensuite || "" : "");
     texte($("suivant"), e.suivant);
     texte($("dureeSuivant"), e.dureeSuivant > 0 ? chrono(e.dureeSuivant) : "");
-    texte($("progres"), chrono(ecoule) + " / " + chrono(e.total));
     $("barre").firstChild.style.width = (e.total > 0 ? Math.min(100, ecoule / e.total * 100) : 0) + "%";
     $("mi").className = e.miRound ? "" : "cache";
     texte($("miT"), t.miRound || ""); texte($("miM"), e.miRound || "");
   }
+  // Bandeau : logo (s'il est arrivé et que c'est le bon), nom de la salle, coach. Absent si l'iPhone n'envoie rien.
+  function entete(e, t) {
+    var logoOk = e.logo !== "" && e.logo === logoId;
+    if (e.logo !== "" && !logoOk && Date.now() - logoDemande > 10000) {
+      logoDemande = Date.now();
+      envoyer("broadcast", { type: "broadcast", event: "bonjour", payload: { ecran: moi } });
+    }
+    var avec = logoOk || e.salle !== "" || e.coach !== "";
+    $("seance").className = avec ? "avecEntete" : "";
+    $("entete").className = avec ? "" : "cache";
+    $("logo").className = logoOk ? "" : "cache";
+    texte($("salle"), e.salle);
+    $("coach").className = e.coach ? "" : "cache";
+    texte($("etiqCoach"), t.coach || "Coach");
+    texte($("nomCoach"), e.coach);
+  }
+
+  // Ligne de la consigne : elle défile (après 2 s d'arrêt sur le début) quand elle ne tient pas sur la largeur.
+  var defile = { texte: null, actif: false, largeur: 0, debut: 0 };
+  function ligne(c) {
+    if (c !== defile.texte) {
+      defile.texte = c; defile.debut = Date.now();
+      texte($("consigne"), c); texte($("copie"), c);
+    }
+    var largeur = $("consigne").offsetWidth, actif = largeur > $("defile").clientWidth + 1;
+    if (actif !== defile.actif) {
+      defile.actif = actif; defile.debut = Date.now();
+      $("copie").className = actif ? "" : "cache";
+      if (actif) image(animer); else decaler(0);
+    }
+    defile.largeur = largeur;
+  }
+  var image = window.requestAnimationFrame || window.webkitRequestAnimationFrame || function (f) { return setTimeout(f, 16); };
+  function animer() {
+    if (!defile.actif || $("seance").className === "cache") { defile.actif = false; decaler(0); $("copie").className = "cache"; return; }
+    var vitesse = window.innerHeight * 0.09, pause = 2000;
+    var parcours = $("copie").offsetWidth;
+    var cycle = pause + parcours / vitesse * 1000;
+    var t = (Date.now() - defile.debut) % cycle;
+    decaler(t < pause ? 0 : (t - pause) / 1000 * vitesse);
+    image(animer);
+  }
+  function decaler(x) {
+    var v = "translateX(" + (document.documentElement.dir === "rtl" ? x : -x) + "px)";
+    var s = [$("consigne").style, $("copie").style];
+    for (var i = 0; i < 2; i++) { s[i].transform = v; s[i].webkitTransform = v; }
+  }
+
   // Couleur de la phase mêlée au noir, comme les hachures de l'iPhone.
   function melange(hex, t) {
     var n = parseInt(hex.replace("#", ""), 16), a = [11, 11, 12];
