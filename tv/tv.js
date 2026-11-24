@@ -251,6 +251,23 @@
   // du bon type et de taille bornée ; le reste est ignoré (texte seulement, jamais de HTML ni d'adresse).
   function chaine(v, n) { return typeof v === "string" ? v.slice(0, n) : ""; }
   function nombre(v, max) { return typeof v === "number" && isFinite(v) ? Math.min(max, Math.max(0, v)) : 0; }
+  function estListe(v) { return Object.prototype.toString.call(v) === "[object Array]"; }
+  function lignesProg(v, max) {
+    var out = [];
+    if (!estListe(v)) return out;
+    for (var i = 0; i < v.length && out.length < max; i++) {
+      var l = v[i];
+      if (!l || typeof l !== "object") continue;
+      out.push({ n: chaine(l.n, 8), t: chaine(l.t, 80), s: l.s === true, on: l.on === true });
+    }
+    return out;
+  }
+  function textesListe(v, max, n) {
+    var out = [];
+    if (!estListe(v)) return out;
+    for (var i = 0; i < v.length && out.length < max; i++) if (typeof v[i] === "string") out.push(v[i].slice(0, n));
+    return out;
+  }
   function verifier(p) {
     if (!p || typeof p !== "object" || Object.prototype.toString.call(p) === "[object Array]") return null;
     var t = p.textes && typeof p.textes === "object" ? p.textes : {}, textes = {};
@@ -268,6 +285,8 @@
       salle: chaine(p.salle, 60), coach: chaine(p.coach, 60), logo: /^[0-9a-f]{12}$/.test(p.logo) ? p.logo : "",
       suivant: chaine(p.suivant, 120), dureeSuivant: nombre(p.dureeSuivant, 86400),
       miRound: typeof p.miRound === "string" ? p.miRound.slice(0, 120) : null,
+      programme: lignesProg(p.programme, 12), notes: textesListe(p.notes, 2, 200),
+      apercu: lignesProg(p.apercu, 16), notesApercu: textesListe(p.notesApercu, 2, 200),
       textes: textes, langue: chaine(p.langue, 20)
     };
   }
@@ -294,7 +313,10 @@
     if (!e.seance) { afficherMessage("Timer4Coachs", t.attente || "", code); return; }
     if (e.termine) { afficherMessage(t.fin || "", e.seance, ""); return; }
     montrer("seance");
-    entete(e, t);
+    // Avant le départ : rien n'a encore tourné. L'heure remplace le chrono, la séance entière s'affiche à droite.
+    var avant = !e.enMarche && e.ecoule < 0.5;
+    var liste = avant ? e.apercu : e.programme;
+    entete(e, t, liste.length > 0, avant);
     var passe = e.enMarche ? (Date.now() - recuA) / 1000 : 0;
     var restant = Math.max(0, e.restant - passe), ecoule = Math.min(e.total, e.ecoule + passe);
     var p = e.duree > 0 ? Math.min(1, Math.max(0, 1 - restant / e.duree)) : 0;
@@ -312,28 +334,32 @@
       cs[i].style.width = largeur + "px";
       texte(cs[i].querySelector(".bloc"), e.bloc);
       texte(cs[i].querySelector(".rang"), e.nb > 1 ? e.rang + "/" + e.nb : "");
-      texte(cs[i].querySelector(".temps"), chrono(restant));
+      texte(cs[i].querySelector(".temps"), avant ? heure() : chrono(restant));
       texte(cs[i].querySelector(".lib"), e.libelle);
     }
     $("pause").className = e.enMarche ? "cache" : "";
     texte($("pause"), t.pause || "");
-    ligne(e.consigne);
-    texte($("ensuite"), e.suivant ? t.ensuite || "" : "");
-    texte($("suivant"), e.suivant);
-    texte($("dureeSuivant"), e.dureeSuivant > 0 ? chrono(e.dureeSuivant) : "");
+    programme(avant ? e.seance : e.bloc, liste, avant ? e.notesApercu : e.notes);
+    if (liste.length === 0) ligne(e.consigne);
+    // Avant le départ, « Ensuite » annonce la première étape (celle qui démarre).
+    var suivant = avant ? e.bloc : e.suivant, dureeSuivant = avant ? e.duree : e.dureeSuivant;
+    texte($("ensuite"), suivant ? t.ensuite || "" : "");
+    texte($("suivant"), suivant);
+    texte($("dureeSuivant"), dureeSuivant > 0 ? chrono(dureeSuivant) : "");
     $("barre").firstChild.style.width = (e.total > 0 ? Math.min(100, ecoule / e.total * 100) : 0) + "%";
     $("mi").className = e.miRound ? "" : "cache";
     texte($("miT"), t.miRound || ""); texte($("miM"), e.miRound || "");
   }
   // Bandeau : logo (s'il est arrivé et que c'est le bon), nom de la salle, coach. Absent si l'iPhone n'envoie rien.
-  function entete(e, t) {
+  function entete(e, t, avecProg, avant) {
     var logoOk = e.logo !== "" && e.logo === logoId;
     if (e.logo !== "" && !logoOk && Date.now() - logoDemande > 10000) {
       logoDemande = Date.now();
       envoyer("broadcast", { type: "broadcast", event: "bonjour", payload: { ecran: moi } });
     }
     var avec = logoOk || e.salle !== "" || e.coach !== "";
-    $("seance").className = avec ? "avecEntete" : "";
+    $("seance").className = (avec ? "avecEntete" : "") + (avecProg ? " avecProg" : "") + (avant && avecProg ? " avant" : "");
+    texte($("horloge"), heure());
     $("entete").className = avec ? "" : "cache";
     $("logo").className = logoOk ? "" : "cache";
     texte($("salle"), e.salle);
@@ -342,6 +368,45 @@
     texte($("nomCoach"), e.coach);
   }
 
+  function heure() {
+    var d = new Date(), m = d.getMinutes();
+    return d.getHours() + ":" + (m < 10 ? "0" : "") + m;
+  }
+  // Programme du bloc (ou de la séance avant le départ) : redessiné seulement quand il change.
+  // Texte seulement (textContent), jamais de HTML venu du message.
+  var progAffiche = null;
+  function programme(nom, liste, notes) {
+    var cle = JSON.stringify([nom, liste, notes]);
+    if (cle === progAffiche) return;
+    progAffiche = cle;
+    texte($("nomProg"), nom || "");
+    var ul = $("listeProg");
+    while (ul.firstChild) ul.removeChild(ul.firstChild);
+    for (var i = 0; i < liste.length; i++) {
+      var li = document.createElement("li"), n = document.createElement("span"), x = document.createElement("span");
+      li.className = (liste[i].s ? "s" : "") + (liste[i].on ? " on" : "");
+      n.className = "n"; n.textContent = liste[i].n;
+      x.className = "t"; x.textContent = liste[i].t;
+      li.appendChild(n); li.appendChild(x); ul.appendChild(li);
+    }
+    var bloc = $("notesL");
+    while (bloc.firstChild) bloc.removeChild(bloc.firstChild);
+    for (var k = 0; k < notes.length; k++) bloc.appendChild(note(notes[k]));
+  }
+  // « RX wall ball 20/14 lb · Scaled 14/10 lb » : le niveau en tête de chaque partie passe en gras.
+  var NIVEAU = /^(RX|Rx|Scaled|Beginner|Intermediate|Masters|Teens|Score|Débutant|Debutant|Intermédiaire|Hommes|Femmes|Men|Women|H|F)(?=[\s:])/;
+  function note(s) {
+    var div = document.createElement("div"), parts = s.split(" · ");
+    for (var i = 0; i < parts.length; i++) {
+      if (i > 0) div.appendChild(document.createTextNode(" · "));
+      var m = NIVEAU.exec(parts[i]);
+      if (m) {
+        var b = document.createElement("b"); b.textContent = m[1]; div.appendChild(b);
+        div.appendChild(document.createTextNode(parts[i].slice(m[1].length).replace(/^\s*:?\s*/, "")));
+      } else div.appendChild(document.createTextNode(parts[i]));
+    }
+    return div;
+  }
   // Ligne de la consigne : elle défile (après 2 s d'arrêt sur le début) quand elle ne tient pas sur la largeur.
   var defile = { texte: null, actif: false, largeur: 0, debut: 0 };
   function ligne(c) {
