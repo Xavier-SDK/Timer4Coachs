@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<!-- Seuls ce site et l'API Supabase du projet sont joignables. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src https://uyykwnzvwwaerzpgsqsp.supabase.co; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Timer4Coachs · Connecter mon IA</title>
+<link rel="icon" type="image/png" href="../../icons/favicon-64.png">
+<link rel="stylesheet" href="../../fonts.css">
+<style>
+/* Page d'autorisation OAuth : une IA demande à envoyer des séances au coach. Le coach accepte dans l'app
+   de son iPhone (QR code, ou bouton sur l'iPhone même) ; la page attend la réponse puis renvoie vers l'IA. */
+:root{--ink:#0B0B0C;--panel:#141517;--line:#2A2C30;--text:#F2EFE6;--muted:#C9CAC6;--dim:#8E9096;--lime:#C6FF1A;
+  --fd:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;--ft:"Barlow","Helvetica Neue",Arial,sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--ft)}
+main{max-width:520px;margin:0 auto;padding:40px 16px 56px;text-align:center;line-height:1.5}
+h1{font-family:var(--fd);font-weight:900;text-transform:uppercase;font-size:40px;line-height:1.05;margin:0 0 12px;color:var(--lime)}
+p{color:var(--muted);font-size:17px;margin:0 0 16px}
+.cache{display:none!important}
+#qr{display:inline-block;background:#fff;border-radius:16px;padding:8px;margin:12px 0 20px}
+#qr svg{display:block;width:240px;height:240px;max-width:70vw;max-height:70vw}
+.bouton{display:inline-block;font-weight:700;font-size:19px;text-decoration:none;background:var(--lime);color:var(--ink);
+  border-radius:16px;padding:16px 28px;margin:8px 0 20px}
+.attente{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--dim);font-size:15px;margin-top:8px}
+.point{width:10px;height:10px;border-radius:50%;background:var(--lime);animation:souffle 1.4s ease-in-out infinite}
+@keyframes souffle{0%,100%{opacity:.25}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.point{animation:none}}
+.etapes{text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin:0 0 20px}
+.etapes li{color:var(--muted);font-size:16px;margin:4px 0}
+small{color:var(--dim);font-size:14px}
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titre"></h1>
+  <p id="intro"></p>
+
+  <div id="ordinateur" class="cache">
+    <div id="qr" aria-hidden="true"></div>
+    <ol class="etapes"><li id="etape1"></li><li id="etape2"></li><li id="etape3"></li></ol>
+  </div>
+
+  <div id="mobile" class="cache">
+    <a id="ouvrir" class="bouton" href="#"></a>
+    <p id="retour"></p>
+  </div>
+
+  <div id="attente" class="attente cache"><span class="point"></span><span id="texteAttente"></span></div>
+  <p id="message" class="cache"></p>
+  <small id="note"></small>
+</main>
+<script src="../qr.js"></script>
+<script src="consent.js"></script>
+</body>
+</html>
