@@ -1,0 +1,18 @@
+{
+  "name": "timer4coachs",
+  "version": "1.0.0",
+  "description": "Write training sessions (martial arts, CrossFit, fitness, HIIT) for the Timer4Coachs app and send them straight to the coach's iPhone. Transcribes whiteboard photos, texts and spreadsheets.",
+  "author": {
+    "name": "Timer4Coachs",
+    "url": "https://timer4coachs.github.io"
+  },
+  "homepage": "https://timer4coachs.github.io",
+  "keywords": [
+    "training",
+    "coach",
+    "timer",
+    "crossfit",
+    "martial-arts",
+    "fitness"
+  ]
+}
