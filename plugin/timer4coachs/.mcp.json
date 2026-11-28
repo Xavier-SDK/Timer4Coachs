@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "timer4coachs": {
-      "type": "http",
-      "url": "https://uyykwnzvwwaerzpgsqsp.supabase.co/functions/v1/mcp"
-    }
-  }
-}
